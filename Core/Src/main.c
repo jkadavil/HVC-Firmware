@@ -22,7 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "can_manager.h"
+#include "mcp2515.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +59,20 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for SPIIntCallback */
+osThreadId_t SPIIntCallbackHandle;
+const osThreadAttr_t SPIIntCallback_attributes = {
+  .name = "SPIIntCallback",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for CANManagerTask */
+osThreadId_t CANManagerTaskHandle;
+const osThreadAttr_t CANManagerTask_attributes = {
+  .name = "CANManagerTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for CAN */
 osMutexId_t CANHandle;
 const osMutexAttr_t CAN_attributes = {
@@ -76,6 +91,8 @@ static void MX_COMP2_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
 void StartDefaultTask(void *argument);
+extern void SPICANIntCallbackTask(void *argument);
+extern void CAN_ManagerTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -121,7 +138,10 @@ int main(void)
   MX_ADC1_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-
+  MCP_reset();
+  MCP_clearInterrupts();
+  MCP_setBitrateClock(CAN_500KBPS, MCP_8MHZ);
+  MCP_setNormalMode();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -149,6 +169,12 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of SPIIntCallback */
+  SPIIntCallbackHandle = osThreadNew(SPICANIntCallbackTask, NULL, &SPIIntCallback_attributes);
+
+  /* creation of CANManagerTask */
+  CANManagerTaskHandle = osThreadNew(CAN_ManagerTask, NULL, &CANManagerTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -221,7 +247,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_SYSCLK, RCC_MCODIV_8);
+  HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSI, RCC_MCODIV_2);
 }
 
 /**
@@ -315,6 +341,7 @@ static void MX_CAN1_Init(void)
   }
   /* USER CODE BEGIN CAN1_Init 2 */
 
+  CAN_Manager_Init();
   /* USER CODE END CAN1_Init 2 */
 
 }
@@ -403,11 +430,11 @@ static void MX_SPI1_Init(void)
   hspi1.Instance = SPI1;
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -419,7 +446,7 @@ static void MX_SPI1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN SPI1_Init 2 */
-
+  
   /* USER CODE END SPI1_Init 2 */
 
 }
@@ -456,7 +483,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : LV_CAN_INT_Pin */
   GPIO_InitStruct.Pin = LV_CAN_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(LV_CAN_INT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA8 */
@@ -490,6 +517,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+  * @brief  Interrupt callback for SPI CAN Int pin
+  * @param  GPIO_PIN: specifies GPIO pin connected to EXTI line
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN) 
+{
+    
+    if (GPIO_PIN == LV_CAN_INT_Pin) {
+        // Handle CAN interrupt
+        // Set flag so we don't do SPI transactions in ISR
+        osThreadFlagsSet(SPIIntCallbackHandle, 0x0001);
+    }
+}
 
 /* USER CODE END 4 */
 
@@ -503,12 +545,15 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  
   /* Infinite loop */
   for(;;)
   {
-    HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_SET);
     osDelay(1000);
-    HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+    // HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_RESET);
     osDelay(1000);
   }
   /* USER CODE END 5 */

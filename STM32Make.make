@@ -75,8 +75,10 @@ endif
 ######################################
 # C sources
 C_SOURCES =  \
+Core/Src/can_manager.c \
 Core/Src/freertos.c \
 Core/Src/main.c \
+Core/Src/mcp2515.c \
 Core/Src/stm32l4xx_hal_msp.c \
 Core/Src/stm32l4xx_hal_timebase_tim.c \
 Core/Src/stm32l4xx_it.c \
