@@ -78,7 +78,10 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
 Core/Src/sysmem.c \
 Core/Src/syscalls.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.c \
-Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi_ex.c
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi_ex.c \
+Core/Src/CANSPI.c \
+Core/Src/mcp2515.c \
+Core/Src/can_manager.c
 
 # ASM sources
 ASM_SOURCES =  \
