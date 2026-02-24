@@ -1,29 +1,82 @@
 # HVC Firmware
 
-STM32L4 project containing firmware for the HVC board. This repository includes
-an MCP2515 CAN controller driver and a Makefile-based build system (STM32
-toolchain + HAL).
+Firmware for the HVC board built on STM32L432 (HAL + FreeRTOS/CMSIS-RTOS v2).
+The project includes:
 
-Quick start
+- Core application startup and peripheral initialization
+- CAN manager infrastructure
+- MCP2515 SPI CAN controller driver
+- IO manager for digital and analog signal sampling
+- Host unit-test workflow (Unity + CMock)
 
-- Build: `make` or use the "Build STM" task in VS Code (requires an installed
-  ARM toolchain and the `stm32-for-vscode` extension if using the tasks).
-- Flash: use the "Flash STM" task, or call OpenOCD with `openocd.cfg`.
+## Repository Layout
 
-Driver documentation
+- `Core/Inc`, `Core/Src`: application code and module headers
+- `Drivers/`, `Middlewares/`: STM32 HAL, CMSIS, FreeRTOS sources
+- `Makefile`: firmware build (generated STM32 Make flow)
+- `tests/`, `tests.mk`: host unit tests
+- `Dockerfile.test`: containerized test runner
+- `openocd.cfg`: OpenOCD debug/flash configuration
 
-- `Core/Src/mcp2515.c` now includes a Doxygen-style file header and several
-  function-level comments for SPI/register helpers and message send/receive
-  helpers.
-- If you want full API docs, I can add a `Doxyfile` and generate HTML docs.
+## Firmware Architecture
 
-Notes
+Current boot/runtime flow in `main.c`:
 
-- SPI peripheral referenced in the driver: `hspi4` (see `Core/Src/mcp2515.c`).
-- Adapt `startSPI()`/`endSPI()` to match the MCU GPIO pin used for CS.
+1. HAL and clocks initialize
+2. Peripherals initialize (`CAN1`, `SPI1`, `ADC`, etc.)
+3. CAN peripheral starts (`HAL_CAN_Start`)
+4. RTOS objects initialize (mutexes, queues, tasks)
+5. Scheduler starts (`osKernelStart`)
 
-Want more?
+Main tasks currently created:
 
-I can expand the Doxygen comments across the whole driver, add a `Doxyfile`,
-and generate documentation output — tell me if you want that next.
-HVC Firmware
+- `CAN_ManagerTask`
+- `SPICANIntCallbackTask`
+- `defaultTask`
+
+## Build and Flash
+
+### Option A: VS Code tasks (recommended for day-to-day work)
+
+- Build: `Build STM`
+- Clean build: `Build Clean STM`
+- Flash: `Flash STM`
+
+### Option B: CLI build
+
+From repository root:
+
+```bash
+make
+```
+
+This uses the generated firmware `Makefile` and requires an ARM GCC toolchain
+(`arm-none-eabi-*`) in your PATH.
+
+### Flashing via OpenOCD
+
+Use your existing OpenOCD setup with `openocd.cfg` for board programming.
+
+## Unit Tests
+
+Unit tests are host-side and do not require flashing hardware.
+
+- Quick guide: `tests/README.md`
+- Build/run all on host: `make -f tests.mk test`
+- Build/run a single module: `make -f tests.mk test <module>`
+
+For containerized test execution, see `tests/README.md`.
+
+## CAN and MCP2515 Notes
+
+- MCP2515 driver source is in `Core/Src/mcp2515.c`.
+- Active SPI handle in the current code is `hspi1`.
+- The project currently contains both `CANSPI.*` and `spi_can.*` naming patterns
+  in different areas; follow the naming used by the file you are editing.
+
+## Naming and Portability Guidance
+
+- Keep filename and include casing consistent (`CANSPI.h` vs `spi_can.h`).
+- On Linux/container builds, include path casing is strict.
+- For active firmware source membership, treat the generated `Makefile` as the
+  source-of-truth list of compiled C files.
