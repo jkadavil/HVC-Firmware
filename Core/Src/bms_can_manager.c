@@ -29,8 +29,8 @@ static CAN_Statistics_t can_stats = {0};
 // static void CAN_ProcessTxQueue(void);
 // static void CAN_ProcessRxMessage(CAN_Message_t *msg);
 
-
-static HAL_StatusTypeDef CAN_TransmitMessage(CAN_Message_t *msg);
+static HAL_StatusTypeDef LV_CAN_ProcessRXMessage(CAN_Message_t *msg);
+static HAL_StatusTypeDef LV_CAN_TransmitMessage(CAN_Message_t *msg);
 // static void CAN_ConfigureFilters(void);
 
 /**
@@ -73,10 +73,28 @@ HAL_StatusTypeDef CAN_Manager_Init(void)
   */
 void CAN_ManagerTask(void *argument)
 {
+    CAN_Message_t msg;
+
     for (;;) {
-        // TODO: implement
-        osDelay(100);
+
+        // TODO: limit on how many messages we process at a time?
+        // Clear RX queue
+        while (osMessageQueueGet(BMS_CAN_RxQueueHandle, &msg, NULL, 0) == osOK) {
+            LV_CAN_ProcessRxMessage(&msg);
+        }
+        // Clear TX queue
+        while (osMessageQueueGet(BMS_CAN_TxQueueHandle, &msg, NULL, 0) == osOK) {
+            LV_CAN_TransmitMessage(&msg);
+        }
+        
+        // TODO: Implement CAN bus error handling
+
+        osDelay(10);
     }
+}
+
+static HAL_StatusTypeDef LV_CAN_ProcessRXMessage(CAN_Message_t *msg) {
+    // TODO: implement RX processing
 }
 
 /**
@@ -84,7 +102,7 @@ void CAN_ManagerTask(void *argument)
   * @param  msg: Pointer to message structure
   * @retval HAL_StatusTypeDef
   */
-static HAL_StatusTypeDef CAN_TransmitMessage(CAN_Message_t *msg)
+static HAL_StatusTypeDef LV_CAN_TransmitMessage(CAN_Message_t *msg)
 {
     CAN_TxHeaderTypeDef TxHeader;
     uint32_t TxMailbox;
