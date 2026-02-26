@@ -19,7 +19,13 @@
 
 #include "main.h"
 #include "io.h"
+#include "can.h"
+#include "state.h"
+#include "can_id.h"
+#include "therm.h"
 #include "stm32l4xx_hal.h"
+
+#define IO_UPDATE_FREQ_MS 10
 
 /**
   * @brief  Initialize IO manager

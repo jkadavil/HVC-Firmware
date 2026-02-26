@@ -1,6 +1,12 @@
 #ifndef __CAN_H
 #define __CAN_H
 
+#include "cmsis_os.h"
+#include "stm32l4xx_hal.h"
+
+// TODO: replace this include with int types ?
+#include <stdint.h>
+
 /* Defines -------------------------------------------------------------------*/
 
 /* CAN Defaults */
@@ -35,13 +41,35 @@ typedef struct {
     uint32_t bus_off_count;         // CAN bus-off events
 } CAN_Statistics_t;
 
-/* External Variables --------------------------------------------------------*/
+/* Public Functions --------------------------------------------------------*/
 
-// LV CAN
-extern osMessageQueueId_t LV_CAN_TxQueueHandle;
+/**
+  * @brief  Send CAN message on LV bus (non-blocking, queues message)
+  * @param  id: CAN message ID (29-bit extended, max 0x1FFFFFFF)
+  * @param  data: Pointer to data buffer (up to 8 bytes)
+  * @param  length: Data length (0-8 bytes)
+  * @param  priority: Message priority (0 = highest, 3 = lowest)
+  * @retval HAL_StatusTypeDef
+  */
+HAL_StatusTypeDef LV_CAN_SendMessage(uint32_t id, uint8_t *data, uint8_t length, uint8_t priority);
 
-// BMS CAN
-extern osMessageQueueId_t BMS_CAN_TxQueueHandle;
+/**
+  * @brief  Send CAN message (non-blocking, queues message)
+  * @param  id: CAN message ID (29-bit extended, max 0x1FFFFFFF)
+  * @param  data: Pointer to data buffer (up to 8 bytes)
+  * @param  length: Data length (0-8 bytes)
+  * @param  priority: Message priority (0 = highest, 3 = lowest)
+  * @retval HAL_StatusTypeDef
+  */
+HAL_StatusTypeDef BMS_CAN_SendMessage(uint32_t id, uint8_t *data, uint8_t length, uint8_t priority);
 
+/* Shared Functions  --------------------------------------------------------*/
+
+/**
+  * @brief  Reset CAN statistics (by zeroing out)
+  * @param  stats: Can statistics struct
+  * @retval none
+  */
+void CAN_ResetStatistics(CAN_Statistics_t *stats);
 
 #endif /* CAN_H_ */

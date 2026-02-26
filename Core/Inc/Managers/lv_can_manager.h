@@ -26,9 +26,10 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stm32l4xx_hal.h"
 #include "cmsis_os.h"
 #include "can.h"
+#include "state.h"
+#include "spi_can.h"
 
 /**
   * @brief  Initialize LV CAN manager
@@ -42,13 +43,6 @@ HAL_StatusTypeDef LV_CAN_Manager_Init(void);
   * @retval None
   */
 void LV_CAN_ManagerTask(void *argument);
-
-/**
-  * @brief  SPI CAN interrupt handler
-  * @param  argument: Not used
-  * @retval None
-  */
-void SPI_CAN_Int_CallbackTask(void *argument);
 
 #ifdef __cplusplus
 }
