@@ -48,7 +48,6 @@ HAL_StatusTypeDef State_Manager_Init(void) {
   * @retval None
   */
 void State_ManagerTask(void *argument) {
-    // TODO: Implement state machine
     uint8_t data[8];
     uint8_t length;
     
