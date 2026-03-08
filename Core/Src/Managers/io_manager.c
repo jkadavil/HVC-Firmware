@@ -57,89 +57,16 @@ HAL_StatusTypeDef IO_Manager_Init(void){
         return HAL_ERROR;
     }
 
-    // Mutex init
-    // TODO: move declarations into io.h
-    const osMutexAttr_t sdc_mutex_attr = {
-        .name = "SDC_Mutex"
-    };
-    sdc.mutex = osMutexNew(&sdc_mutex_attr);
-    if (!sdc.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t imd_mutex_attr = {
-        .name = "IMD_Mutex"
-    };
-    imd.mutex = osMutexNew(&imd_mutex_attr);
-    if (!imd.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t bms_fault_mutex_attr = {
-        .name = "BMS_Fault_Mutex"
-    };
-    bms_fault.mutex = osMutexNew(&bms_fault_mutex_attr);
-    if (!bms_fault.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t cs_low_raw_mutex_attr = {
-        .name = "CS_Low_Raw_Mutex"
-    };
-    cs_low_raw.mutex = osMutexNew(&cs_low_raw_mutex_attr);
-    if (!cs_low_raw.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t cs_high_raw_mutex_attr = {
-        .name = "CS_High_Raw_Mutex"
-    };
-    cs_high_raw.mutex = osMutexNew(&cs_high_raw_mutex_attr);
-    if (!cs_high_raw.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t therm_mutex_attr = {
-        .name = "Therm_Mutex"
-    };
-    therm.mutex = osMutexNew(&therm_mutex_attr);
-    if (!therm.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t ref_temp_mutex_attr = {
-        .name = "Ref_Temp_Mutex"
-    };
-    ref_temp.mutex = osMutexNew(&ref_temp_mutex_attr);
-    if (!ref_temp.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t cs_low_mutex_attr = {
-        .name = "CS_Low_Mutex"
-    };
-    cs_low.mutex = osMutexNew(&cs_low_mutex_attr);
-    if (!cs_low.mutex) return HAL_ERROR;
-
-    const osMutexAttr_t cs_high_mutex_attr = {
-        .name = "CS_High_Mutex"
-    };
-    cs_high.mutex = osMutexNew(&cs_high_mutex_attr);
-    if (!cs_high.mutex) return HAL_ERROR;
-
-    // Initialize all IO values
-    sdc.value = 0;
-    sdc.last_updated = 0;
-
-    imd.value = 0;
-    imd.last_updated = 0;
-
-    bms_fault.value = 0;    // Start faulted
-    bms_fault.last_updated = 0;
-
-    cs_low_raw.value = 0;
-    cs_low_raw.last_updated = 0;
-
-    cs_high_raw.value = 0;
-    cs_high_raw.last_updated = 0;
-
-    therm.value = 0;
-    therm.last_updated = 0;
-
-    ref_temp.value = 0.0f;
-    ref_temp.last_updated = 0;
-
-    cs_low.value = 0;
-    cs_low.last_updated = 0;
-
-    cs_high.value = 0;
-    cs_high.last_updated = 0;
+    // Data init
+    if (IO_InitDigitalIO(&sdc, "SDC_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitDigitalIO(&imd, "IMD_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitDigitalIO(&bms_fault, "BMS_Fault_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitAnalogIO(&cs_low_raw, "CS_Low_Raw_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitAnalogIO(&cs_high_raw, "CS_High_Raw_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitAnalogIO(&therm, "Therm_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitTemp(&ref_temp, "Ref_Temp_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitCurrent(&cs_low, "CS_Low_Mutex") != HAL_OK) return HAL_ERROR;
+    if (IO_InitCurrent(&cs_high, "CS_High_Mutex") != HAL_OK) return HAL_ERROR;
 
     io_initialized = 1;
 
@@ -245,7 +172,7 @@ static uint16_t _IO_ReadADCChannel(void)
  */
 static void _IO_WriteFault(void) {
     uint8_t fault = IO_GetDigitalIO(&bms_fault);
-    if (bms_fault.value) HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_SET);
+    if (fault) HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_SET);
     else HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_RESET);
 }
 
