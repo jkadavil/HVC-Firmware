@@ -525,6 +525,25 @@ __attribute__((weak)) void State_GetState(State *state)
     }
 }
 
+HAL_StatusTypeDef State_InitState(Locked_State *state)
+{
+    if (state == NULL) {
+        return HAL_ERROR;
+    }
+
+    const osMutexAttr_t state_mutex_attr = {
+        .name = "State_Mutex"
+    };
+
+    state->mutex = osMutexNew(&state_mutex_attr);
+    if (state->mutex == NULL) {
+        return HAL_ERROR;
+    }
+
+    state->state = PRE_INIT;
+    return HAL_OK;
+}
+
 __attribute__((weak)) void State_SetState(State new_state)
 {
     test_state = new_state;
